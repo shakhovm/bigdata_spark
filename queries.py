@@ -1,4 +1,4 @@
-import task1, task2, task3, task4, task5, task6
+import helper_functions
 
 
 class Queries:
@@ -13,13 +13,15 @@ class Queries:
                           .limit(10)
                           .rdd.map(lambda x: x["video_id"]).collect())
         popular_ids_df = self.df_rdd.filter(lambda x: x["video_id"] in popular_ids) \
-            .map(task1.dct_creator).reduceByKey(task1.add_trending_days)
+            .map(helper_functions.dct_creator)\
+            .reduceByKey(helper_functions.trending_days)
 
         # print(type(popular_ids_df.take(10)))
         return list(map(lambda x: x[1], popular_ids_df.take(10)))
 
     def task2(self):
-        df = self.df_rdd.map(task2.devide_by_weeks).reduceByKey(task2.compare_dates) \
+        df = self.df_rdd.map(helper_functions.devide_by_weeks)\
+            .reduceByKey(helper_functions.compare_dates) \
             .filter(lambda x: x[1]["last_date"] != x[1]["first_date"]) \
             .map(lambda x: ((x[0][0], x[0][1]),
                             {
@@ -29,7 +31,7 @@ class Queries:
                                 "end_day": x[1]["end_day"],
                                 "start_day": x[1]["start_day"],
                                 "total_views": x[1]["last_views"] - x[1]["first_views"]
-                            })).reduceByKey(task2.count_videos) \
+                            })).reduceByKey(helper_functions.count_videos) \
             .map(lambda x: (x[0][0], x[1])) \
             .reduceByKey(lambda x, y: x if x["total_views"] > y["total_views"] else y) \
             .map(lambda x: x[1])
@@ -45,14 +47,14 @@ class Queries:
             "number_of_videos": 1
 
         })) \
-            .reduceByKey(task3.videos_count). \
+            .reduceByKey(helper_functions.videos_count). \
             sortBy(lambda x: -x[1]["number_of_videos"]) \
             .map(lambda x: (x[0][0], {"tags": [{
             "tag": x[0][1],
             "number_of_videos": x[1]["number_of_videos"],
             "video_ids": x[1]["video_ids"]
         }]})) \
-            .reduceByKey(task3.tags_count)
+            .reduceByKey(helper_functions.tags_count)
         return df.take(10)
 
     def task4(self):
@@ -64,8 +66,8 @@ class Queries:
                                       "start_date": x[1][1],
                                       "end_date": x[1][1],
                                       "total_views": int(x[1][2])})) \
-            .reduceByKey(task4.compare_dates).sortBy(lambda x: -x[1]["total_views"])\
-            .map(task4.to_appropriate)
+            .reduceByKey(helper_functions.compare_dates_and_add).sortBy(lambda x: -x[1]["total_views"])\
+            .map(helper_functions.to_appropriate)
         return df.take(20)
 
     def task5(self):
@@ -73,13 +75,13 @@ class Queries:
             "channel_title": x["channel_title"],
             "trending_days": 1,
             "video_title": x["title"]
-        })).reduceByKey(task5.add_trending_days).map(lambda x: (x[1]["channel_title"], {
+        })).reduceByKey(helper_functions.add_trending_days).map(lambda x: (x[1]["channel_title"], {
             "video_days": [{"video_id": x[0], "video_title": x[1]["video_title"],
                             "trending_days": x[1]["trending_days"]}],
             "channel_name": x[1]["channel_title"],
             "total_trending_days": x[1]["trending_days"]
 
-        })).reduceByKey(task5.add_video_days).sortBy(lambda x: -x[1]["total_trending_days"])
+        })).reduceByKey(helper_functions.add_video_days).sortBy(lambda x: -x[1]["total_trending_days"])
         return list(map(lambda x: x[1], df.take(10)))
 
     def task6(self):
@@ -97,5 +99,5 @@ class Queries:
                     "views": x[1][3]
                 }
             ]
-        })).reduceByKey(task6.add_videos)
+        })).reduceByKey(helper_functions.add_videos)
         return list(map(lambda x: x[1], df.collect()))
